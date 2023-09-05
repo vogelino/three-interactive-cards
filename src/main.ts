@@ -50,12 +50,7 @@ function init() {
   scene.add(ambientLight);
 }
 
-let millisecondsPassed = 0;
-let oldTimeStamp = 0;
-function animate(timeStamp: number) {
-  millisecondsPassed = timeStamp - oldTimeStamp;
-  oldTimeStamp = timeStamp;
-
+function animate() {
   requestAnimationFrame(animate);
 
   images.forEach((image) => image.update());
@@ -98,4 +93,4 @@ function getIntersectingObject(event: MouseEvent) {
 }
 
 init();
-animate(Date.now());
+animate();
