@@ -25,7 +25,9 @@ export class ImagePlane {
   private currentAnimationProgressStartTime = Date.now();
   private currentAnimationProgressTime = Date.now();
   private currentAnimationStartWidth = 1;
-  private animationPhase: "mouseEnter" | "mouseLeave" | "none" = "none";
+  private currentAnimationStartRotation = 0;
+  private animationPhase: "mouseEnter" | "mouseLeave" | "click" | "none" =
+    "none";
 
   constructor(config: ConfigType) {
     const { imagePath } = config;
@@ -66,7 +68,8 @@ export class ImagePlane {
     const ANIMATION_DURATION = 500;
     const isMouseEnter = this.animationPhase === "mouseEnter";
     const isMouseLeave = this.animationPhase === "mouseLeave";
-    const isAnimating = isMouseEnter || isMouseLeave;
+    const isClick = this.animationPhase === "click";
+    const isAnimating = isMouseEnter || isMouseLeave || isClick;
 
     if (!isAnimating) return;
     this.currentAnimationProgressTime = Math.min(
@@ -74,15 +77,30 @@ export class ImagePlane {
       ANIMATION_DURATION
     );
 
-    const objectiveValue = isMouseEnter ? 1.5 : 1;
-    const diffecence = objectiveValue - this.currentAnimationStartWidth;
-    const value = easeInOutExpo(
-      this.currentAnimationProgressTime,
-      this.currentAnimationStartWidth,
-      diffecence,
-      ANIMATION_DURATION
-    );
-    this.mesh.scale.set(value, value, value);
+    if (isMouseEnter || isMouseLeave) {
+      const objectiveValue = isMouseEnter ? 1.5 : 1;
+      const diffecence = objectiveValue - this.currentAnimationStartWidth;
+      const value = easeInOutExpo(
+        this.currentAnimationProgressTime,
+        this.currentAnimationStartWidth,
+        diffecence,
+        ANIMATION_DURATION
+      );
+      this.mesh.scale.set(value, value, value);
+    }
+
+    if (isClick) {
+      const objectiveValue =
+        this.currentAnimationStartRotation + THREE.MathUtils.degToRad(360);
+      const diffecence = objectiveValue - this.currentAnimationStartRotation;
+      const value = easeInOutExpo(
+        this.currentAnimationProgressTime,
+        this.currentAnimationStartRotation,
+        diffecence,
+        ANIMATION_DURATION
+      );
+      this.mesh.rotation.z = value;
+    }
 
     if (this.currentAnimationProgressTime === ANIMATION_DURATION) {
       this.animationPhase = "none";
@@ -92,7 +110,6 @@ export class ImagePlane {
   private triggerAnimation() {
     this.currentAnimationProgressStartTime = Date.now();
     this.currentAnimationProgressTime = 0;
-    this.currentAnimationStartWidth = this.mesh.scale.x;
     this.update();
   }
 
@@ -100,6 +117,7 @@ export class ImagePlane {
     if (this.mouseOvered) return;
     this.animationPhase = "mouseEnter";
     this.mouseOvered = true;
+    this.currentAnimationStartWidth = this.mesh.scale.x;
     this.triggerAnimation();
   }
 
@@ -107,6 +125,13 @@ export class ImagePlane {
     if (!this.mouseOvered) return;
     this.animationPhase = "mouseLeave";
     this.mouseOvered = false;
+    this.currentAnimationStartWidth = this.mesh.scale.x;
+    this.triggerAnimation();
+  }
+
+  click() {
+    this.animationPhase = "click";
+    this.currentAnimationStartRotation = this.mesh.rotation.z;
     this.triggerAnimation();
   }
 }

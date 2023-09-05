@@ -65,7 +65,23 @@ function animate(timeStamp: number) {
 
 canvas.addEventListener("mousemove", (event) => {
   event.preventDefault();
+  const mesh = getIntersectingObject(event);
+  if (mesh) {
+    images.forEach((image) => image.getMesh() === mesh && image.mouseEnter());
+  } else {
+    images.forEach((image) => image.mouseLeave());
+  }
+});
 
+canvas.addEventListener("click", (event) => {
+  event.preventDefault();
+  const mesh = getIntersectingObject(event);
+  if (mesh) {
+    images.forEach((image) => image.getMesh() === mesh && image.click());
+  }
+});
+
+function getIntersectingObject(event: MouseEvent) {
   const vector = new THREE.Vector2(
     (event.clientX / window.innerWidth) * 2 - 1,
     -(event.clientY / window.innerHeight) * 2 + 1
@@ -76,12 +92,10 @@ canvas.addEventListener("mousemove", (event) => {
 
   const intersects = raycaster.intersectObjects(scene.children);
   if (intersects.length > 0) {
-    const mesh = intersects[0].object;
-    images.forEach((image) => image.getMesh() === mesh && image.mouseEnter());
-  } else {
-    images.forEach((image) => image.mouseLeave());
+    return intersects[0].object;
   }
-});
+  return null;
+}
 
 init();
 animate(Date.now());
