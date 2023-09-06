@@ -3,10 +3,10 @@ import { Animation } from "./Animation";
 
 type ConfigType = {
   imagePath: string;
-  x: number;
-  y: number;
   width: number;
   height: number;
+  angle: number;
+  worldPoint: THREE.Vector3;
 };
 
 export class ImagePlane {
@@ -15,13 +15,11 @@ export class ImagePlane {
     THREE.MeshBasicMaterial | THREE.MeshBasicMaterial[]
   >;
   private config: ConfigType;
-  private currentAnimationStartWidth = 1;
   private scaleAnimation: Animation;
-  private rotateAnimation: Animation;
+  private currentAngle: number = 0;
 
   constructor(config: ConfigType) {
     const { imagePath } = config;
-    const { x, y } = config;
     this.config = config;
     new THREE.TextureLoader().load(imagePath, (texture) => {
       this.mesh.material = new THREE.MeshBasicMaterial({
@@ -34,18 +32,12 @@ export class ImagePlane {
       color: 0xcccccc,
     });
     this.mesh = new THREE.Mesh(geometry, material);
-    this.mesh.position.setX(x);
-    this.mesh.position.setY(y);
-    this.mesh.scale.setX(this.currentAnimationStartWidth);
-    this.mesh.scale.setY(this.currentAnimationStartWidth);
+    this.rotateMeshFromAnchorPoint(config.worldPoint, config.angle, "y");
+    this.currentAngle = config.angle;
 
     this.scaleAnimation = new Animation({
       startValue: 1,
-      endValue: 1.5,
-    });
-    this.rotateAnimation = new Animation({
-      startValue: 0,
-      endValue: THREE.MathUtils.degToRad(360),
+      endValue: 1.2,
     });
 
     return this;
@@ -54,7 +46,7 @@ export class ImagePlane {
   private getOriginalSize() {
     const { width, height } = this.config;
     const aspectRatio = width / height;
-    const imageWidth = 5;
+    const imageWidth = 15;
     const imageHeight = imageWidth / aspectRatio;
     return { width: imageWidth, height: imageHeight };
   }
@@ -63,14 +55,20 @@ export class ImagePlane {
     return this.mesh;
   }
 
-  update() {
+  update(newAngle: number) {
     this.scaleAnimation.update((val) => {
       this.mesh.scale.setX(val);
       this.mesh.scale.setY(val);
     });
-    this.rotateAnimation.update((val) => {
-      this.mesh.rotation.z = val;
-    });
+    const angleDifference = newAngle + this.config.angle - this.currentAngle;
+    if (angleDifference !== 0) {
+      this.rotateMeshFromAnchorPoint(
+        this.config.worldPoint,
+        angleDifference,
+        "y"
+      );
+    }
+    this.currentAngle = newAngle + this.config.angle;
   }
 
   mouseEnter() {
@@ -81,7 +79,34 @@ export class ImagePlane {
     this.scaleAnimation.backwards().start();
   }
 
-  click() {
-    this.rotateAnimation.start();
+  click() {}
+
+  private rotateMeshFromAnchorPoint(
+    point: THREE.Vector3,
+    angle: number,
+    axis: "x" | "y" | "z" = "y",
+    pointIsWorld = false
+  ) {
+    const obj = this.mesh;
+
+    if (pointIsWorld) {
+      obj.parent?.localToWorld(obj.position);
+    }
+
+    const theta = THREE.MathUtils.degToRad(angle);
+    obj.position.add(point);
+    const vectorAxis = new THREE.Vector3(
+      axis === "x" ? 1 : 0,
+      axis === "y" ? 1 : 0,
+      axis === "z" ? 1 : 0
+    );
+    obj.position.applyAxisAngle(vectorAxis, theta);
+    obj.position.sub(point);
+
+    if (pointIsWorld) {
+      obj.parent?.worldToLocal(obj.position);
+    }
+
+    obj.rotateOnAxis(vectorAxis, theta);
   }
 }

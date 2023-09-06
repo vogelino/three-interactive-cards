@@ -1,11 +1,12 @@
 import { ImagePlane } from "./ImagePlane";
+import { MomentumDraggable } from "./MomentumDraggable";
 import "./style.css";
 import * as THREE from "three";
 
 const canvas = document.querySelector("#bg") as HTMLCanvasElement;
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
-  75,
+  65,
   window.innerWidth / window.innerHeight,
   0.1,
   1000
@@ -16,32 +17,30 @@ renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 camera.position.setZ(30);
 
-const images = [
-  new ImagePlane({
-    imagePath: "/canyon.jpeg",
-    x: -10,
-    y: 10,
-    width: 8870,
-    height: 5914,
-  }),
-  new ImagePlane({
-    imagePath: "/growhouse.jpeg",
-    x: 10,
-    y: 10,
-    width: 3648,
-    height: 5472,
-  }),
-  new ImagePlane({
-    imagePath: "/mountains.jpeg",
-    x: -10,
-    y: -10,
-    width: 5372,
-    height: 3357,
-  }),
-];
+const worldPoint = new THREE.Vector3(0, 0, 35);
+
+const momentumDraggable = new MomentumDraggable(canvas);
+
+const imagePaths = Array(13)
+  .fill(0)
+  .map((_, index) => `/image-${index + 1}.jpg`);
+
+const anglePiece = 360 / imagePaths.length;
+const images = imagePaths.map(
+  (imagePath, index) =>
+    new ImagePlane({
+      imagePath,
+      width: 800,
+      height: 800,
+      angle: anglePiece * index,
+      worldPoint,
+    })
+);
 
 function init() {
-  images.forEach((image) => scene.add(image.getMesh()));
+  images.forEach((image) => {
+    scene.add(image.getMesh());
+  });
 
   scene.background = new THREE.Color(0xffffff);
 
@@ -52,8 +51,10 @@ function init() {
 
 function animate() {
   requestAnimationFrame(animate);
+  const dragOffsetLeft = momentumDraggable.getScrollLeft();
+  const dragOffsetAsConstrainedAngle = dragOffsetLeft / 100;
 
-  images.forEach((image) => image.update());
+  images.forEach((image) => image.update(dragOffsetAsConstrainedAngle));
 
   renderer.render(scene, camera);
 }
