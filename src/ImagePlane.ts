@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { Animation } from "./Animation";
 
 type ConfigType = {
   imagePath: string;
@@ -8,26 +9,15 @@ type ConfigType = {
   height: number;
 };
 
-function easeInOutExpo(t: number, b: number, c: number, d: number) {
-  if (t == 0) return b;
-  if (t == d) return b + c;
-  if ((t /= d / 2) < 1) return (c / 2) * Math.pow(2, 10 * (t - 1)) + b;
-  return (c / 2) * (-Math.pow(2, -10 * --t) + 2) + b;
-}
-
 export class ImagePlane {
   private mesh: THREE.Mesh<
     THREE.PlaneGeometry,
     THREE.MeshBasicMaterial | THREE.MeshBasicMaterial[]
   >;
-  private mouseOvered: boolean = false;
   private config: ConfigType;
-  private currentAnimationProgressStartTime = Date.now();
-  private currentAnimationProgressTime = Date.now();
   private currentAnimationStartWidth = 1;
-  private currentAnimationStartRotation = 0;
-  private animationPhase: "mouseEnter" | "mouseLeave" | "click" | "none" =
-    "none";
+  private scaleAnimation: Animation;
+  private rotateAnimation: Animation;
 
   constructor(config: ConfigType) {
     const { imagePath } = config;
@@ -49,6 +39,15 @@ export class ImagePlane {
     this.mesh.scale.setX(this.currentAnimationStartWidth);
     this.mesh.scale.setY(this.currentAnimationStartWidth);
 
+    this.scaleAnimation = new Animation({
+      startValue: 1,
+      endValue: 1.5,
+    });
+    this.rotateAnimation = new Animation({
+      startValue: 0,
+      endValue: THREE.MathUtils.degToRad(360),
+    });
+
     return this;
   }
 
@@ -65,73 +64,24 @@ export class ImagePlane {
   }
 
   update() {
-    const ANIMATION_DURATION = 500;
-    const isMouseEnter = this.animationPhase === "mouseEnter";
-    const isMouseLeave = this.animationPhase === "mouseLeave";
-    const isClick = this.animationPhase === "click";
-    const isAnimating = isMouseEnter || isMouseLeave || isClick;
-
-    if (!isAnimating) return;
-    this.currentAnimationProgressTime = Math.min(
-      Date.now() - this.currentAnimationProgressStartTime,
-      ANIMATION_DURATION
-    );
-
-    if (isMouseEnter || isMouseLeave) {
-      const objectiveValue = isMouseEnter ? 1.5 : 1;
-      const diffecence = objectiveValue - this.currentAnimationStartWidth;
-      const value = easeInOutExpo(
-        this.currentAnimationProgressTime,
-        this.currentAnimationStartWidth,
-        diffecence,
-        ANIMATION_DURATION
-      );
-      this.mesh.scale.set(value, value, value);
-    }
-
-    if (isClick) {
-      const objectiveValue =
-        this.currentAnimationStartRotation + THREE.MathUtils.degToRad(360);
-      const diffecence = objectiveValue - this.currentAnimationStartRotation;
-      const value = easeInOutExpo(
-        this.currentAnimationProgressTime,
-        this.currentAnimationStartRotation,
-        diffecence,
-        ANIMATION_DURATION
-      );
-      this.mesh.rotation.z = value;
-    }
-
-    if (this.currentAnimationProgressTime === ANIMATION_DURATION) {
-      this.animationPhase = "none";
-    }
-  }
-
-  private triggerAnimation() {
-    this.currentAnimationProgressStartTime = Date.now();
-    this.currentAnimationProgressTime = 0;
-    this.update();
+    this.scaleAnimation.update((val) => {
+      this.mesh.scale.setX(val);
+      this.mesh.scale.setY(val);
+    });
+    this.rotateAnimation.update((val) => {
+      this.mesh.rotation.z = val;
+    });
   }
 
   mouseEnter() {
-    if (this.mouseOvered) return;
-    this.animationPhase = "mouseEnter";
-    this.mouseOvered = true;
-    this.currentAnimationStartWidth = this.mesh.scale.x;
-    this.triggerAnimation();
+    this.scaleAnimation.forwards().start();
   }
 
   mouseLeave() {
-    if (!this.mouseOvered) return;
-    this.animationPhase = "mouseLeave";
-    this.mouseOvered = false;
-    this.currentAnimationStartWidth = this.mesh.scale.x;
-    this.triggerAnimation();
+    this.scaleAnimation.backwards().start();
   }
 
   click() {
-    this.animationPhase = "click";
-    this.currentAnimationStartRotation = this.mesh.rotation.z;
-    this.triggerAnimation();
+    this.rotateAnimation.start();
   }
 }

@@ -58,14 +58,18 @@ function animate() {
   renderer.render(scene, camera);
 }
 
+let lastHoveredImage: ImagePlane | null = null;
 canvas.addEventListener("mousemove", (event) => {
   event.preventDefault();
   const mesh = getIntersectingObject(event);
-  if (mesh) {
-    images.forEach((image) => image.getMesh() === mesh && image.mouseEnter());
-  } else {
-    images.forEach((image) => image.mouseLeave());
+  const hoveredImage = images.find((image) => image.getMesh() === mesh);
+  if (lastHoveredImage && lastHoveredImage !== hoveredImage) {
+    lastHoveredImage.mouseLeave();
   }
+  if (hoveredImage && hoveredImage !== lastHoveredImage) {
+    hoveredImage.mouseEnter();
+  }
+  lastHoveredImage = hoveredImage || null;
 });
 
 canvas.addEventListener("click", (event) => {
