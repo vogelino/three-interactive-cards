@@ -37,6 +37,7 @@ export class MomentumDraggable {
   }
 
   public onWheel(event: WheelEvent) {
+    event.preventDefault();
     const walkY = event.deltaY;
     const prevYOffset = this.dragYOffset;
     this.dragYOffset -= walkY;
@@ -46,6 +47,7 @@ export class MomentumDraggable {
   }
 
   private onPressDown(event: MouseEvent | TouchEvent) {
+    event.preventDefault();
     this.isDown = true;
     const { x, y } = this.getPageOffsetFromMouseOrTouchEvent(event);
     this.startX = x;
@@ -59,6 +61,7 @@ export class MomentumDraggable {
   }
 
   private onMouseMove(event: MouseEvent | TouchEvent) {
+    event.preventDefault();
     if (!this.isDown) return;
     const { x, y } = this.getPageOffsetFromMouseOrTouchEvent(event);
     const walkX = x - this.startX;
