@@ -11,11 +11,12 @@ type ConfigType = {
 
 export class ImagePlane {
   private mesh: THREE.Mesh<
-    THREE.PlaneGeometry,
+    THREE.CylinderGeometry,
     THREE.MeshBasicMaterial | THREE.MeshBasicMaterial[]
   >;
   private config: ConfigType;
   private scaleAnimation: Animation;
+  private isHovered: boolean = false;
 
   constructor(config: ConfigType) {
     const { imagePath } = config;
@@ -23,27 +24,39 @@ export class ImagePlane {
     new THREE.TextureLoader().load(imagePath, (texture) => {
       this.mesh.material = new THREE.MeshBasicMaterial({
         map: texture,
-        side: THREE.BackSide,
+        side: THREE.DoubleSide,
       });
     });
-    const { width, height } = this.getOriginalSize();
-    const geometry = new THREE.PlaneGeometry(width, height, 1, 1);
+    const geometry = new THREE.CylinderGeometry(
+      1,
+      1,
+      0.4,
+      8,
+      1,
+      true,
+      0,
+      360 / 13 / 70
+    );
+    geometry.rotateY(Math.PI / 1);
+
     const material = new THREE.MeshBasicMaterial({
       color: 0xcccccc,
     });
-    material.side = THREE.BackSide;
     this.mesh = new THREE.Mesh(geometry, material);
-    const { worldPoint } = config;
-    this.mesh.position.set(
-      -(worldPoint?.x || 0),
-      -(worldPoint?.y || 0),
-      -(worldPoint?.z || 0)
-    );
     this.rotateMeshFromWorldPoint(config.angle, "y");
 
     this.scaleAnimation = new Animation({
       startValue: 1,
       endValue: 1.2,
+      duration: 2000,
+      easingFunction: function easeOutExpo(
+        t: number,
+        b: number,
+        c: number,
+        d: number
+      ) {
+        return (c * (-Math.pow(2, (-10 * t) / d) + 1) * 1024) / 1023 + b;
+      },
     });
 
     return this;
@@ -57,26 +70,45 @@ export class ImagePlane {
     return { width: imageWidth, height: imageHeight };
   }
 
-  getMesh() {
+  public getMesh() {
     return this.mesh;
   }
 
-  update() {
+  public update() {
     this.scaleAnimation.update((val) => {
       this.mesh.scale.setX(val);
       this.mesh.scale.setY(val);
     });
+    return this;
   }
 
-  mouseEnter() {
+  public onMouseMove(intersectingObject: THREE.Object3D | null) {
+    if (!this.isHovered && intersectingObject === this.mesh) {
+      this.mouseEnter();
+    }
+    if (
+      this.isHovered &&
+      intersectingObject &&
+      intersectingObject !== this.mesh
+    ) {
+      this.mouseLeave();
+    }
+    return this;
+  }
+
+  public onClick() {
+    return this;
+  }
+
+  private mouseEnter() {
+    this.isHovered = true;
     this.scaleAnimation.forwards().start();
   }
 
-  mouseLeave() {
+  private mouseLeave() {
+    this.isHovered = false;
     this.scaleAnimation.backwards().start();
   }
-
-  click() {}
 
   private rotateMeshFromWorldPoint(
     angle: number,

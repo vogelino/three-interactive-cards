@@ -1,4 +1,4 @@
-import { ImagePlane } from "./ImagePlane";
+import { ImageRing } from "./ImageRing";
 import { MomentumDraggable } from "./MomentumDraggable";
 import "./style.css";
 import * as THREE from "three";
@@ -6,12 +6,12 @@ import * as THREE from "three";
 const canvas = document.querySelector("#bg") as HTMLCanvasElement;
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
-  65,
+  75,
   window.innerWidth / window.innerHeight,
   0.1,
   1000
 );
-const renderer = new THREE.WebGLRenderer({ canvas });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -19,31 +19,32 @@ camera.position.setZ(30);
 
 const momentumDraggable = new MomentumDraggable(canvas);
 
-const DEPTH_OFFSET = 35;
-
 const imagePaths = Array(13)
   .fill(0)
   .map((_, index) => `/image-${index + 1}.jpg`);
 
-const anglePiece = 360 / imagePaths.length;
-const images = imagePaths.map(
-  (imagePath, index) =>
-    new ImagePlane({
-      imagePath,
-      width: 800,
-      height: 800,
-      angle: anglePiece * index,
-      worldPoint: new THREE.Vector3(0, 0, DEPTH_OFFSET),
-    })
-);
+const DEPTH_OFFSET = imagePaths.length * 3;
+const VERTICAL_OFFSET = 0.5;
+
+const rings = Array(10)
+  .fill(0)
+  .map(
+    (_, index) =>
+      new ImageRing({
+        angleOffset: 20 * index,
+        imagePaths,
+        yPosition: VERTICAL_OFFSET * index,
+        depthOffset: DEPTH_OFFSET,
+      })
+  );
 
 const boom = new THREE.Group();
 boom.add(camera);
 scene.add(boom);
-camera.position.set(0, 0, DEPTH_OFFSET * 2);
+camera.position.set(0, 0, 0);
 
 function init() {
-  images.forEach((image) => scene.add(image.getMesh()));
+  rings.forEach((ring) => scene.add(ring.getGroup()));
 
   scene.background = new THREE.Color(0xffffff);
 
@@ -56,35 +57,34 @@ function init() {
 
 function animate() {
   requestAnimationFrame(animate);
-  const dragOffset = momentumDraggable.getScrollLeft() / 1000;
+  const originalDragOffset = momentumDraggable.getOffset();
+  const dragXOffset = originalDragOffset.x / 10000;
+  const dragYOffset = originalDragOffset.y / 10000;
 
-  boom.rotation.y = -dragOffset;
+  boom.rotation.y = dragXOffset;
+  camera.position.y = dragYOffset + (rings.length * VERTICAL_OFFSET) / 2;
 
-  images.forEach((image) => image.update());
+  rings.forEach((ring) => ring.update());
 
   renderer.render(scene, camera);
 }
 
-let lastHoveredImage: ImagePlane | null = null;
+window.addEventListener("resize", () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
 canvas.addEventListener("mousemove", (event) => {
   event.preventDefault();
   const mesh = getIntersectingObject(event);
-  const hoveredImage = images.find((image) => image.getMesh() === mesh);
-  if (lastHoveredImage && lastHoveredImage !== hoveredImage) {
-    lastHoveredImage.mouseLeave();
-  }
-  if (hoveredImage && hoveredImage !== lastHoveredImage) {
-    hoveredImage.mouseEnter();
-  }
-  lastHoveredImage = hoveredImage || null;
+  rings.forEach((ring) => ring.onMouseMove(mesh));
 });
 
 canvas.addEventListener("click", (event) => {
   event.preventDefault();
   const mesh = getIntersectingObject(event);
-  if (mesh) {
-    images.forEach((image) => image.getMesh() === mesh && image.click());
-  }
+  if (mesh) rings.forEach((ring) => ring.onClick());
 });
 
 function getIntersectingObject(event: MouseEvent) {
