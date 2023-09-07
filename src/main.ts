@@ -17,9 +17,9 @@ renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 camera.position.setZ(30);
 
-const worldPoint = new THREE.Vector3(0, 0, 35);
-
 const momentumDraggable = new MomentumDraggable(canvas);
+
+const DEPTH_OFFSET = 35;
 
 const imagePaths = Array(13)
   .fill(0)
@@ -33,28 +33,35 @@ const images = imagePaths.map(
       width: 800,
       height: 800,
       angle: anglePiece * index,
-      worldPoint,
+      worldPoint: new THREE.Vector3(0, 0, DEPTH_OFFSET),
     })
 );
 
+const boom = new THREE.Group();
+boom.add(camera);
+scene.add(boom);
+camera.position.set(0, 0, DEPTH_OFFSET);
+boom.translateZ(10);
+
 function init() {
-  images.forEach((image) => {
-    scene.add(image.getMesh());
-  });
+  images.forEach((image) => scene.add(image.getMesh()));
 
   scene.background = new THREE.Color(0xffffff);
 
   const ambientLight = new THREE.AmbientLight(0xffffff);
   ambientLight.intensity = 4.5;
   scene.add(ambientLight);
+
+  camera.lookAt(0, 0, 0);
 }
 
 function animate() {
   requestAnimationFrame(animate);
-  const dragOffsetLeft = momentumDraggable.getScrollLeft();
-  const dragOffsetAsConstrainedAngle = dragOffsetLeft / 100;
+  const dragOffset = momentumDraggable.getScrollLeft() / 1000;
 
-  images.forEach((image) => image.update(dragOffsetAsConstrainedAngle));
+  boom.rotation.y = dragOffset;
+
+  images.forEach((image) => image.update());
 
   renderer.render(scene, camera);
 }

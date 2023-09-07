@@ -6,7 +6,7 @@ type ConfigType = {
   width: number;
   height: number;
   angle: number;
-  worldPoint: THREE.Vector3;
+  worldPoint?: THREE.Vector3;
 };
 
 export class ImagePlane {
@@ -16,7 +16,6 @@ export class ImagePlane {
   >;
   private config: ConfigType;
   private scaleAnimation: Animation;
-  private currentAngle: number = 0;
 
   constructor(config: ConfigType) {
     const { imagePath } = config;
@@ -32,8 +31,13 @@ export class ImagePlane {
       color: 0xcccccc,
     });
     this.mesh = new THREE.Mesh(geometry, material);
-    this.rotateMeshFromAnchorPoint(config.worldPoint, config.angle, "y");
-    this.currentAngle = config.angle;
+    const { worldPoint } = config;
+    this.mesh.position.set(
+      -(worldPoint?.x || 0),
+      -(worldPoint?.y || 0),
+      -(worldPoint?.z || 0)
+    );
+    this.rotateMeshFromWorldPoint(config.angle, "y");
 
     this.scaleAnimation = new Animation({
       startValue: 1,
@@ -55,20 +59,11 @@ export class ImagePlane {
     return this.mesh;
   }
 
-  update(newAngle: number) {
+  update() {
     this.scaleAnimation.update((val) => {
       this.mesh.scale.setX(val);
       this.mesh.scale.setY(val);
     });
-    const angleDifference = newAngle + this.config.angle - this.currentAngle;
-    if (angleDifference !== 0) {
-      this.rotateMeshFromAnchorPoint(
-        this.config.worldPoint,
-        angleDifference,
-        "y"
-      );
-    }
-    this.currentAngle = newAngle + this.config.angle;
   }
 
   mouseEnter() {
@@ -81,13 +76,13 @@ export class ImagePlane {
 
   click() {}
 
-  private rotateMeshFromAnchorPoint(
-    point: THREE.Vector3,
+  private rotateMeshFromWorldPoint(
     angle: number,
     axis: "x" | "y" | "z" = "y",
     pointIsWorld = false
   ) {
     const obj = this.mesh;
+    const point = new THREE.Vector3(0, 0, 0);
 
     if (pointIsWorld) {
       obj.parent?.localToWorld(obj.position);

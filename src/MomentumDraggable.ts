@@ -15,16 +15,19 @@ export class MomentumDraggable {
     this.element.addEventListener("mouseleave", this.onMouseLeave.bind(this));
     this.element.addEventListener("mouseup", this.onMouseUp.bind(this));
     this.element.addEventListener("mousemove", this.onMouseMove.bind(this));
-    this.element.addEventListener("wheel", this.onWheel.bind(this));
+    this.element.addEventListener("touchstart", this.onMouseDown.bind(this));
+    this.element.addEventListener("touchend", this.onMouseUp.bind(this));
+    this.element.addEventListener("touchmove", this.onMouseMove.bind(this));
+    this.element.addEventListener("touchcancel", this.onMouseLeave.bind(this));
   }
 
   public getScrollLeft() {
     return this.scrollLeft;
   }
 
-  private onMouseDown(event: MouseEvent) {
+  private onMouseDown(event: MouseEvent | TouchEvent) {
     this.isDown = true;
-    this.startX = event.pageX;
+    this.startX = this.getPageXFromMouseOrTouchEvent(event);
     this.cancelMomentumTracking();
   }
 
@@ -38,18 +41,13 @@ export class MomentumDraggable {
     this.beginMomentumTracking();
   }
 
-  private onMouseMove(event: MouseEvent) {
+  private onMouseMove(event: MouseEvent | TouchEvent) {
     if (!this.isDown) return;
-    const x = event.pageX;
+    const x = this.getPageXFromMouseOrTouchEvent(event);
     const walk = x - this.startX;
     const prevScrollLeft = this.scrollLeft;
     this.scrollLeft += walk;
     this.velX = this.scrollLeft - prevScrollLeft;
-  }
-
-  private onWheel(event: WheelEvent) {
-    event.preventDefault();
-    this.cancelMomentumTracking();
   }
 
   private beginMomentumTracking() {
@@ -66,6 +64,14 @@ export class MomentumDraggable {
     this.velX *= 0.95;
     if (Math.abs(this.velX) > 0.5) {
       this.momentumID = requestAnimationFrame(this.momentumLoop.bind(this));
+    }
+  }
+
+  private getPageXFromMouseOrTouchEvent(event: MouseEvent | TouchEvent) {
+    if (event instanceof TouchEvent) {
+      return event.touches[0].pageX;
+    } else {
+      return event.pageX;
     }
   }
 }
