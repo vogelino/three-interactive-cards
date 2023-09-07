@@ -23,6 +23,7 @@ export class ImagePlane {
     new THREE.TextureLoader().load(imagePath, (texture) => {
       this.mesh.material = new THREE.MeshBasicMaterial({
         map: texture,
+        side: THREE.BackSide,
       });
     });
     const { width, height } = this.getOriginalSize();
@@ -30,6 +31,7 @@ export class ImagePlane {
     const material = new THREE.MeshBasicMaterial({
       color: 0xcccccc,
     });
+    material.side = THREE.BackSide;
     this.mesh = new THREE.Mesh(geometry, material);
     const { worldPoint } = config;
     this.mesh.position.set(

@@ -40,8 +40,7 @@ const images = imagePaths.map(
 const boom = new THREE.Group();
 boom.add(camera);
 scene.add(boom);
-camera.position.set(0, 0, DEPTH_OFFSET);
-boom.translateZ(10);
+camera.position.set(0, 0, DEPTH_OFFSET * 2);
 
 function init() {
   images.forEach((image) => scene.add(image.getMesh()));
@@ -59,7 +58,7 @@ function animate() {
   requestAnimationFrame(animate);
   const dragOffset = momentumDraggable.getScrollLeft() / 1000;
 
-  boom.rotation.y = dragOffset;
+  boom.rotation.y = -dragOffset;
 
   images.forEach((image) => image.update());
 
