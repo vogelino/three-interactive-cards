@@ -26,6 +26,7 @@ export class MomentumDraggable {
       "touchcancel",
       this.onPressRelease.bind(this)
     );
+    this.element.addEventListener("wheel", this.onWheel.bind(this));
   }
 
   public getOffset() {
@@ -33,6 +34,15 @@ export class MomentumDraggable {
       x: this.dragXOffset,
       y: this.dragYOffset,
     };
+  }
+
+  public onWheel(event: WheelEvent) {
+    const walkY = event.deltaY;
+    const prevYOffset = this.dragYOffset;
+    this.dragYOffset -= walkY;
+    this.yVelocity = this.dragYOffset - prevYOffset;
+    this.cancelMomentumTracking();
+    this.yMomentumID = requestAnimationFrame(this.yMomentumLoop.bind(this));
   }
 
   private onPressDown(event: MouseEvent | TouchEvent) {

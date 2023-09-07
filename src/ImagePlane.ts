@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { Animation } from "./Animation";
+import { Freezable } from "./Freezable";
 
 type ConfigType = {
   imagePath: string;
@@ -9,18 +10,17 @@ type ConfigType = {
   worldPoint?: THREE.Vector3;
 };
 
-export class ImagePlane {
+export class ImagePlane extends Freezable {
   private mesh: THREE.Mesh<
     THREE.CylinderGeometry,
     THREE.MeshBasicMaterial | THREE.MeshBasicMaterial[]
   >;
-  private config: ConfigType;
   private scaleAnimation: Animation;
   private isHovered: boolean = false;
 
   constructor(config: ConfigType) {
+    super();
     const { imagePath } = config;
-    this.config = config;
     new THREE.TextureLoader().load(imagePath, (texture) => {
       this.mesh.material = new THREE.MeshBasicMaterial({
         map: texture,
@@ -62,19 +62,12 @@ export class ImagePlane {
     return this;
   }
 
-  private getOriginalSize() {
-    const { width, height } = this.config;
-    const aspectRatio = width / height;
-    const imageWidth = 15;
-    const imageHeight = imageWidth / aspectRatio;
-    return { width: imageWidth, height: imageHeight };
-  }
-
   public getMesh() {
     return this.mesh;
   }
 
   public update() {
+    if (this.isFrozen) return;
     this.scaleAnimation.update((val) => {
       this.mesh.scale.setX(val);
       this.mesh.scale.setY(val);
@@ -83,6 +76,7 @@ export class ImagePlane {
   }
 
   public onMouseMove(intersectingObject: THREE.Object3D | null) {
+    if (this.isFrozen) return;
     if (!this.isHovered && intersectingObject === this.mesh) {
       this.mouseEnter();
     }
@@ -101,11 +95,13 @@ export class ImagePlane {
   }
 
   private mouseEnter() {
+    if (this.isFrozen) return;
     this.isHovered = true;
     this.scaleAnimation.forwards().start();
   }
 
   private mouseLeave() {
+    if (this.isFrozen) return;
     this.isHovered = false;
     this.scaleAnimation.backwards().start();
   }

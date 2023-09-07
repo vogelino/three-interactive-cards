@@ -26,7 +26,7 @@ const imagePaths = Array(13)
 const DEPTH_OFFSET = imagePaths.length * 3;
 const VERTICAL_OFFSET = 0.5;
 
-const rings = Array(10)
+const rings = Array(100)
   .fill(0)
   .map(
     (_, index) =>
@@ -35,6 +35,7 @@ const rings = Array(10)
         imagePaths,
         yPosition: VERTICAL_OFFSET * index,
         depthOffset: DEPTH_OFFSET,
+        isOdd: index % 2 === 0,
       })
   );
 
@@ -64,7 +65,7 @@ function animate() {
   boom.rotation.y = dragXOffset;
   camera.position.y = dragYOffset + (rings.length * VERTICAL_OFFSET) / 2;
 
-  rings.forEach((ring) => ring.update());
+  rings.forEach((ring) => ring.update(dragYOffset));
 
   renderer.render(scene, camera);
 }
@@ -84,7 +85,9 @@ canvas.addEventListener("mousemove", (event) => {
 canvas.addEventListener("click", (event) => {
   event.preventDefault();
   const mesh = getIntersectingObject(event);
-  if (mesh) rings.forEach((ring) => ring.onClick());
+  if (mesh) {
+    rings.forEach((ring) => ring.onClick());
+  }
 });
 
 function getIntersectingObject(event: MouseEvent) {
